@@ -6,9 +6,10 @@ import json
 
 def order(request):
     if request.method == 'GET':
+        customer = request.user.email
         serial = json.loads(request.body.decode("utf-8"))
         result = Robot.objects.filter(**serial).count()
-        customer = 'a@mail.ru'
-        return create_order(serial, customer)
-    else:
-        pass
+        if result:
+            return create_order(serial, customer)
+        return 200
+    return 400
