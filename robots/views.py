@@ -16,12 +16,8 @@ from django.db.models import Count, Q
 def add_robot(request):
     if request.method == 'POST':
         info = json.loads(request.body.decode("utf-8"))
-        info['created'] = timezone.make_aware(
-            datetime.fromisoformat(info['created'])) #.strftime('%Y, ')
-        print(info)
+        info['created'] = datetime.strptime(info['created'], '%Y-%m-%d %H:%M:%S') #.strftime(info['created'], '%Y-%m-%d %H:%M:%S'))
         robot = Robot(**info)
- # Replace with your desired date and time
-
 
         if robot.save():
             find_order(info.serial)
@@ -32,7 +28,6 @@ def add_robot(request):
 
 def download_excel(request):
     if request.method == 'GET':
-
         robots = Robot.objects.all()
         serialized_data = serializers.serialize('json', robots)
         python_objects = json.loads(serialized_data)
@@ -56,24 +51,24 @@ def download_excel(request):
                 cell = ws.cell(row=1, column=index)
                 cell.value = item
 
-            today = timezone.now()
-            start = today - timedelta(days=today.weekday())
+            today = datetime.now(tz=timezone.utc).strftime("%d-%m-%Y %H:%M:%S")
+            start = datetime.now(tz=timezone.utc) - timedelta(days=datetime.now(tz=timezone.utc).weekday())
             end = start + timedelta(days=6, hours=23, minutes=59, seconds=59)
 
-            model_counts = Robot.objects.filter(created__range=(start, end)).count() #.annotate(version=Count('version'))# #
-            '''
-            for robot in model_counts:
+             #.annotate(version=Count('version'))# #
+
+            for robot in Robot.objects.all():
+                robot.created = Robot.objects.filter(created__gte=start, created__lte=end).count()
                 formatted_instance = [
                     robot.model,
                     robot.version,
-                    robot.created.strftime('%Y-%m-%d %H:%M:%S'),  # Format the datetime
+                    robot.created,  # Format the datetime
                 ]
                 ws.append(formatted_instance)
 
         wb.save('output.xlsx')
-        '''
-            print(model_counts)
-        return HttpResponse(model_counts)
+
+        return HttpResponse(robot)
 
         # for row in ws.iter_rows(min_row=1, max_col=len(header)):
            #     pass
